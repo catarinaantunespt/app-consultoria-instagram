@@ -1,0 +1,846 @@
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
+  LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend,
+  PieChart, Pie, Cell, RadialBarChart, RadialBar, AreaChart, Area, ComposedChart, FunnelChart, Funnel, LabelList, ScatterChart, Scatter, ZAxis
+} from 'recharts';
+import { 
+  LayoutDashboard, Instagram, Zap, MessageCircle, Users, 
+  ArrowUpRight, ArrowDownRight, AlertTriangle, CheckCircle2, XCircle, 
+  Hash, Image as ImageIcon, Volume2, Link as LinkIcon, Share2, Award, 
+  Activity, TrendingUp, Plus, Trash2, ArrowRight, Settings, Smartphone,
+  Camera, PenTool, LayoutTemplate, ClipboardCheck, Target, FileText, BrainCircuit,
+  AlertOctagon, ThumbsUp, Eye, Lock, Megaphone, Mic, Mail, Key, Sparkles, Timer, Palette,
+  Scale, Layers, Type, MousePointerClick, Heart, Crown, Wand2, RefreshCcw, Video, 
+  Radio, BadgePercent, Shuffle, Link2, SearchCheck, BarChart4, AlertCircle, FileSearch,
+  ListTodo, CalendarCheck, Coins, Database, Flame, Table2, UserPlus, UserMinus,
+  Map, Milestone, Lightbulb, Focus, CheckSquare, ScanFace, Fingerprint, Crosshair, Swords,
+  User, Send, Bot, Code2, MousePointer2, UserCheck, MapPin, BookOpen, Drama,
+  Briefcase, Coffee, Gem, Anchor, ShieldCheck, MessageSquare, Share, Bookmark, Reply,
+  Globe, Clock, Calendar, ExternalLink
+} from 'lucide-react';
+
+// --- 1. GLOBAL CONSTANTS ---
+
+const apiKey = ""; 
+const COMP_COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+const LOGO_URL = "catarinaantunespt-catarina-antunes-logo.png";
+
+// --- 2. HELPER FUNCTIONS (SEEDING) ---
+const getSeed = (str: string) => {
+  let h = 0xdeadbeef;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 2654435761);
+  }
+  return ((h ^ h >>> 16) >>> 0);
+};
+
+const seededRandom = (seed: number) => {
+  const x = Math.sin(seed++) * 10000;
+  return x - Math.floor(x);
+};
+
+// --- 3. DYNAMIC DATA GENERATORS (PERSONALIZATION ENGINE) ---
+
+// Branding Generators
+const generateBrandConsistency = (seed: number) => [
+  { name: 'Paleta (Vermelho/Preto)', value: Math.floor(seededRandom(seed) * 30) + 60, fill: '#b91c1c' }, 
+  { name: 'Tipografia (Sans)', value: Math.floor(seededRandom(seed + 1) * 40) + 50, fill: '#ef4444' }, 
+  { name: 'Filtro/Preset', value: Math.floor(seededRandom(seed + 2) * 50) + 40, fill: '#f87171' }, 
+  { name: 'Grelha Visual', value: Math.floor(seededRandom(seed + 3) * 60) + 20, fill: '#fca5a5' }, 
+];
+
+const generateArchetypeData = (seed: number) => [
+  { subject: 'O Sábio', A: Math.floor(seededRandom(seed) * 60) + 40, fullMark: 100 },
+  { subject: 'O Governante', A: Math.floor(seededRandom(seed + 1) * 60) + 40, fullMark: 100 },
+  { subject: 'O Criador', A: Math.floor(seededRandom(seed + 2) * 60) + 40, fullMark: 100 },
+  { subject: 'O Herói', A: Math.floor(seededRandom(seed + 3) * 60) + 40, fullMark: 100 },
+  { subject: 'O Cuidador', A: Math.floor(seededRandom(seed + 4) * 60) + 40, fullMark: 100 },
+  { subject: 'O Rebelde', A: Math.floor(seededRandom(seed + 5) * 60) + 40, fullMark: 100 },
+];
+
+// Copy & Funnel Generators
+const generateCopyAnalysis = (seed: number) => {
+  const youScore = Math.floor(seededRandom(seed + 6) * 40) + 10; // 10-50%
+  return [
+    { name: 'Foco no Cliente (You)', value: youScore, fill: '#ef4444' },
+    { name: 'Foco na Marca (We)', value: 100 - youScore, fill: '#52525b' },
+  ];
+};
+
+const generateFunnelData = (seed: number) => [
+  { value: 100, name: 'Impressões (Topo)', fill: '#7f1d1d' },
+  { value: Math.floor(seededRandom(seed + 7) * 30) + 30, name: 'Visitas Perfil (Meio)', fill: '#b91c1c' },
+  { value: Math.floor(seededRandom(seed + 8) * 15) + 5, name: 'Cliques Link (Fundo)', fill: '#ef4444' },
+  { value: Math.floor(seededRandom(seed + 9) * 5) + 1, name: 'Conversão (Leads)', fill: '#fca5a5' },
+];
+
+const generateContentMix = (seed: number) => {
+  const sales = Math.floor(seededRandom(seed + 10) * 50) + 20;
+  const value = Math.floor(seededRandom(seed + 11) * (80 - sales));
+  const human = 100 - sales - value;
+  return [
+    { name: 'Venda (Conversão)', value: sales, fill: '#ef4444' }, 
+    { name: 'Valor (Educação)', value: value, fill: '#10b981' },
+    { name: 'Humanização (Conexão)', value: human, fill: '#f59e0b' },
+  ];
+};
+
+// Technical SEO Generators
+const generateSeoScore = (seed: number) => [
+  { name: 'Keywords (LSI)', score: Math.floor(seededRandom(seed + 12) * 70) + 20 },
+  { name: 'Alt Text', score: Math.floor(seededRandom(seed + 13) * 50) }, 
+  { name: 'Legendas (OCR)', score: Math.floor(seededRandom(seed + 14) * 60) + 30 },
+  { name: 'Bio Otimizada', score: Math.floor(seededRandom(seed + 15) * 40) + 50 },
+];
+
+const generateFormatPerformance = (seed: number) => [
+  { name: 'Reels', alcance: Math.floor(seededRandom(seed + 16) * 5000) + 4000, retencao: Math.floor(seededRandom(seed + 17) * 40) + 10 },
+  { name: 'Carrossel', alcance: Math.floor(seededRandom(seed + 18) * 4000) + 3000, retencao: Math.floor(seededRandom(seed + 19) * 50) + 40 },
+  { name: 'Estático', alcance: Math.floor(seededRandom(seed + 20) * 2000) + 1000, retencao: Math.floor(seededRandom(seed + 21) * 20) + 5 },
+  { name: 'Stories', alcance: Math.floor(seededRandom(seed + 22) * 1500) + 500, retencao: Math.floor(seededRandom(seed + 23) * 40) + 30 },
+];
+
+// Growth & Daily Generators
+const generateDailyGrowth = (seed: number) => {
+  return Array.from({ length: 7 }, (_, i) => ({
+    day: `0${i + 1}`,
+    followers: 12400 + Math.floor(seededRandom(seed + i) * 200),
+    new: Math.floor(seededRandom(seed + i * 2) * 50) + 10,
+    lost: Math.floor(seededRandom(seed + i * 3) * 5)
+  }));
+};
+
+const generateInteractionBreakdown = (seed: number) => [
+  { name: 'Gostos', seguidores: Math.floor(seededRandom(seed + 24) * 3000) + 1000, naoSeguidores: Math.floor(seededRandom(seed + 25) * 1000) },
+  { name: 'Guardados', seguidores: Math.floor(seededRandom(seed + 26) * 500) + 100, naoSeguidores: Math.floor(seededRandom(seed + 27) * 2000) + 500 }, 
+  { name: 'Partilhas', seguidores: Math.floor(seededRandom(seed + 28) * 200) + 50, naoSeguidores: Math.floor(seededRandom(seed + 29) * 800) + 100 },
+  { name: 'Comentários', seguidores: Math.floor(seededRandom(seed + 30) * 300) + 50, naoSeguidores: Math.floor(seededRandom(seed + 31) * 100) },
+];
+
+const generateContentVolume = (seed: number) => [
+  { name: 'Reels', quantidade: Math.floor(seededRandom(seed + 32) * 15) + 2, viewsMedios: Math.floor(seededRandom(seed + 33) * 10000) + 5000 },
+  { name: 'Carrossel', quantidade: Math.floor(seededRandom(seed + 34) * 10) + 2, viewsMedios: Math.floor(seededRandom(seed + 35) * 5000) + 2000 },
+  { name: 'Estático', quantidade: Math.floor(seededRandom(seed + 36) * 8) + 1, viewsMedios: Math.floor(seededRandom(seed + 37) * 2000) + 500 },
+  { name: 'Stories', quantidade: Math.floor(seededRandom(seed + 38) * 50) + 10, viewsMedios: Math.floor(seededRandom(seed + 39) * 800) + 100 },
+];
+
+// Demographics
+const generateGeoData = (seed: number) => [
+  { name: 'Lisboa, PT', value: 45 },
+  { name: 'Porto, PT', value: 20 },
+  { name: 'São Paulo, BR', value: 15 },
+  { name: 'Londres, UK', value: 5 },
+  { name: 'Outros', value: 15 },
+];
+
+const generateAgeData = (seed: number) => [
+  { name: '13-17', seguidores: 5, naoSeguidores: 10 },
+  { name: '18-24', seguidores: 20, naoSeguidores: 35 },
+  { name: '25-34', seguidores: 45, naoSeguidores: 30 },
+  { name: '35-44', seguidores: 20, naoSeguidores: 15 },
+  { name: '45+', seguidores: 10, naoSeguidores: 10 },
+];
+
+const generateActivityHeatmap = (seed: number) => [
+  { day: 'Seg', seguidores: 80, naoSeguidores: 40 },
+  { day: 'Ter', seguidores: 65, naoSeguidores: 30 },
+  { day: 'Qua', seguidores: 90, naoSeguidores: 50 },
+  { day: 'Qui', seguidores: 85, naoSeguidores: 45 },
+  { day: 'Sex', seguidores: 70, naoSeguidores: 80 }, 
+  { day: 'Sáb', seguidores: 40, naoSeguidores: 90 },
+  { day: 'Dom', seguidores: 50, naoSeguidores: 95 },
+];
+
+const generateAdsData = (seed: number) => [
+  { objective: 'Tráfego (Cliques)', cost: '0.12€', result: 450, ctr: '1.8%' },
+  { objective: 'Reels (3s Plays)', cost: '0.01€', result: 12500, ctr: '0.5%' },
+  { objective: 'Conversão (Leads)', cost: '2.50€', result: 15, ctr: '0.9%' },
+];
+
+const generateCompetitorMatrix = (competitors: string[], baseSeed: number) => {
+  const metrics = [
+    'Identidade Visual', 'SEO Técnico', 'Taxa Engajamento', 'Cadência', 'Humanização', 'Conversão'
+  ];
+
+  return metrics.map((subject, i) => {
+    const point: any = { subject, fullMark: 100, Você: Math.floor(seededRandom(baseSeed + i) * 40) + 50 };
+    competitors.forEach((comp, idx) => {
+      const compSeed = getSeed(comp);
+      point[comp] = Math.floor(seededRandom(compSeed + i) * 50) + 30; 
+    });
+    return point;
+  });
+};
+
+const generateShareOfVoice = (competitors: string[], baseSeed: number) => {
+  const data = [{ name: 'Você', value: 3000 + Math.floor(seededRandom(baseSeed) * 2000) }];
+  competitors.forEach((comp, i) => {
+    const compSeed = getSeed(comp);
+    data.push({ name: comp, value: 1500 + Math.floor(seededRandom(compSeed) * 4000) });
+  });
+  return data;
+};
+
+const generateContentStrategy = (competitors: string[], baseSeed: number) => {
+  const myReels = Math.floor(seededRandom(baseSeed) * 50) + 20;
+  const data = [{ name: 'Você', Reels: myReels, Carrossel: 90 - myReels, Estatico: 10 }];
+  competitors.forEach((comp, i) => {
+    const compSeed = getSeed(comp);
+    const r = Math.floor(seededRandom(compSeed) * 60) + 10;
+    const c = Math.floor(seededRandom(compSeed + 1) * (90 - r));
+    data.push({ name: comp, Reels: r, Carrossel: c, Estatico: 100 - r - c });
+  });
+  return data;
+};
+
+const generateGrowthVelocity = (competitors: string[], baseSeed: number) => {
+  return Array.from({ length: 7 }, (_, i) => {
+    const point: any = { name: `D${i+1}`, Você: 1 + seededRandom(baseSeed + i) };
+    competitors.forEach((comp, idx) => {
+      const compSeed = getSeed(comp);
+      point[comp] = 0.5 + seededRandom(compSeed + i) * 1.5; 
+    });
+    return point;
+  });
+};
+
+const generatePosts = (username: string, seed: number) => {
+  const types = ['Reel', 'Carrossel', 'Estático', 'Reel', 'Carrossel'];
+  const contents = [`Bastidores ${username}`, '5 Erros Comuns', 'Frase de Impacto', 'Tutorial Rápido', 'Estudo de Caso', 'Mito vs Verdade', 'Minha História', 'Dica de Ouro', 'Q&A', 'Unboxing'];
+  const ratings = ['S', 'A+', 'A', 'B', 'C-', 'A', 'S', 'B+'];
+  return Array.from({ length: 5 }, (_, i) => ({
+    date: `${i + 1}d atrás`,
+    type: types[Math.floor(seededRandom(seed + i) * types.length)],
+    content: contents[Math.floor(seededRandom(seed + i * 2) * contents.length)],
+    interactions: Math.floor(seededRandom(seed + i * 3) * 5000) + 100,
+    saves: Math.floor(seededRandom(seed + i * 4) * 500),
+    reach: Math.floor(seededRandom(seed + i * 5) * 20000) + 1000,
+    rating: ratings[Math.floor(seededRandom(seed + i * 6) * ratings.length)]
+  }));
+};
+
+// --- STRATEGY CONSTANTS ---
+
+const PERSONAS = [
+  { name: "O Jovem Empreendedor", traits: "Ambicioso, impaciente, procura atalhos.", tone: "Direto & Motivacional", format: "Reels Curtos (15s)", storyType: "A Jornada do Herói (Rápida)" },
+  { name: "A Mãe Ocupada", traits: "Prática, emotiva, valoriza tempo.", tone: "Empático & Acolhedor", format: "Stories de Bastidores", storyType: "Identificação & Solução" },
+  { name: "O Executivo C-Level", traits: "Analítico, cético, procura ROI.", tone: "Sóbrio & Baseado em Dados", format: "Carrosséis Densos (LinkedIn Style)", storyType: "Estudo de Caso (Problema-Solução)" },
+  { name: "O Gen Z Criativo", traits: "Visual, irónico, valoriza estética.", tone: "Autêntico & 'Raw'", format: "Photo Dumps & Reels Lo-Fi", storyType: "Vlog 'Day in the Life'" },
+  { name: "O Profissional de Saúde", traits: "Ético, cuidadoso, procura credibilidade.", tone: "Educativo & Científico", format: "Vídeos Explicativos Longos", storyType: "Mito vs Verdade" }
+];
+
+const BRAND_ARCHETYPES = [
+  { name: "O Sábio", trait: "Verdade", color: "Azul/Cinza", advice: "Aumente a profundidade do conteúdo educativo." },
+  { name: "O Governante", trait: "Poder", color: "Preto/Dourado", advice: "Mostre mais resultados e liderança." },
+  { name: "O Herói", trait: "Coragem", color: "Laranja/Vermelho", advice: "Desafie o status quo do seu nicho." },
+  { name: "O Amante", trait: "Intimidade", color: "Rosa/Vermelho", advice: "Crie uma estética mais sensorial e próxima." },
+  { name: "O Criador", trait: "Inovação", color: "Cores Vivas", advice: "Quebre o padrão visual do seu feed." }
+];
+
+const getStoryStructure = (personaIndex: number) => {
+  const structures = [
+    [
+      { step: '1. O Choque', time: '0-2s', action: 'Afirmação controversa ou resultado impossível.' },
+      { step: '2. A Prova', time: '2-10s', action: 'Flash rápido de resultados/ganhos.' },
+      { step: '3. O Método', time: '10-45s', action: 'Explicação ultra-rápida do "como".' },
+      { step: '4. O CTA', time: '45-50s', action: 'Ordem direta: "Comenta X para receber".' },
+    ],
+    [
+      { step: '1. A Conexão', time: '0-5s', action: 'Mostrar uma situação real de caos/problema.' },
+      { step: '2. A Empatia', time: '5-20s', action: '"Eu sei como te sentes, também passei por isso".' },
+      { step: '3. A Solução Simples', time: '20-50s', action: 'Dica prática que poupa tempo.' },
+      { step: '4. O Convite', time: '50-60s', action: 'Convite suave para a comunidade.' },
+    ],
+    [
+      { step: '1. O Dado', time: '0-5s', action: 'Gráfico ou estatística surpreendente.' },
+      { step: '2. A Análise', time: '5-30s', action: 'Interpretação técnica do mercado.' },
+      { step: '3. A Oportunidade', time: '30-50s', action: 'Onde está o ROI escondido.' },
+      { step: '4. A Decisão', time: '50-60s', action: 'Apelo lógico à consultoria.' },
+    ],
+    [
+      { step: '1. O Mood', time: '0-3s', action: 'Corte rápido visual estético.' },
+      { step: '2. O Contexto', time: '3-15s', action: 'Texto no ecrã com áudio trending.' },
+      { step: '3. O Valor', time: '15-40s', action: 'Dica subtil inserida no lifestyle.' },
+      { step: '4. A Partilha', time: '40-45s', action: 'Algo relacionável para repostar.' },
+    ],
+    [
+      { step: '1. O Mito', time: '0-5s', action: '"Disseram-te que X faz mal? Mentira."' },
+      { step: '2. A Ciência', time: '5-40s', action: 'Explicação baseada em estudos (com prints).' },
+      { step: '3. A Aplicação', time: '40-55s', action: 'Como aplicar isto na rotina.' },
+      { step: '4. A Consulta', time: '55-60s', action: 'Link para agendamento.' },
+    ]
+  ];
+  return structures[personaIndex % structures.length];
+};
+
+const generateStrategyProfile = (username: string, seed: number) => {
+  const personaIdx = Math.floor(seededRandom(seed) * PERSONAS.length);
+  const archetypeIdx = Math.floor(seededRandom(seed + 1) * BRAND_ARCHETYPES.length);
+  
+  const persona = PERSONAS[personaIdx];
+  const archetype = BRAND_ARCHETYPES[archetypeIdx];
+  const storyStructure = getStoryStructure(personaIdx);
+
+  const recommendations = [
+    { area: "Tom de Voz", problem: "Detetada inconsistência no tom atual.", solution: `Adotar o tom "${persona.tone}" para ressoar com ${persona.name}.`, impact: "Aumento de Retenção (+25%)", priority: "Alta" },
+    { area: "Formato de Conteúdo", problem: "Formato atual não serve a intenção do público.", solution: `Pivotar estratégia para 60% de ${persona.format}.`, impact: "Alcance Viral", priority: "Alta" },
+    { area: "Branding Visual", problem: `A estética atual não comunica "${archetype.trait}".`, solution: `${archetype.advice} Usar paleta ${archetype.color}.`, impact: "Perceção de Valor", priority: "Média" }
+  ];
+
+  const roadmap = [
+    { phase: 'Mês 1: Alinhamento', focus: 'Identidade & Persona', tasks: [`Redefinir Bio para falar com: ${persona.name}`, `Ajustar presets para estilo ${archetype.color}`, 'Limpeza de seguidores fantasmas'] },
+    { phase: 'Mês 2: Conexão', focus: 'Narrativa & Comunidade', tasks: [`Série de ${persona.format} focada em ${persona.traits.split(',')[1]}`, 'Lançamento de Lead Magnet específico', 'Lives semanais de Q&A'] },
+    { phase: 'Mês 3: Autoridade', focus: 'Conversão & Escala', tasks: [`Lançamento de oferta High-Ticket para ${persona.name}`, 'Automação de Funil (ManyChat)', 'Collabs com perfis complementares'] },
+  ];
+
+  return { persona, archetype, recommendations, roadmap, storyStructure };
+};
+
+// --- Constants needed for ContentTrendsView ---
+const trendsData = [
+  { topic: 'IA Generativa em Design', volume: 'Alto (120k)', trend: '+120%', status: 'Oportunidade' },
+  { topic: 'Estética "Raw" (Sem Filtro)', volume: 'Médio (45k)', trend: '+45%', status: 'A Adotar' },
+  { topic: 'SEO para Reels (Search)', volume: 'Alto (80k)', trend: '+80%', status: 'Crítico' },
+];
+
+// --- Interfaces ---
+
+interface CardProps {
+  children: ReactNode;
+  className?: string;
+  locked?: boolean;
+  onUnlock?: () => void;
+  title?: string;
+  action?: ReactNode;
+}
+
+interface BadgeProps {
+  type: 'success' | 'warning' | 'danger' | 'neutral' | 'brand' | 'ai' | 'high' | 'med' | 'low';
+  children: ReactNode;
+}
+
+// --- Components ---
+
+const DataGuard: React.FC<{ isConnected: boolean, children: ReactNode, title?: string }> = ({ isConnected, children, title }) => {
+  if (isConnected) return <>{children}</>;
+
+  return (
+    <div className="relative w-full h-full min-h-[200px] bg-zinc-900/30 border border-zinc-800 rounded-xl overflow-hidden flex flex-col items-center justify-center text-center p-6">
+      <div className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm z-10" />
+      <div className="z-20 flex flex-col items-center gap-3 max-w-xs">
+        <div className="bg-zinc-800 p-3 rounded-full text-zinc-400">
+          <Lock size={24} />
+        </div>
+        <div>
+          <h4 className="text-sm font-bold text-white mb-1">Faz o login com o teu Instagram</h4>
+          <p className="text-xs text-zinc-500 leading-relaxed">
+            Métricas como {title || 'Alcance, Demografia e Vendas'} requerem acesso autenticado ao Instagram Insights.
+          </p>
+        </div>
+      </div>
+      <div className="z-0 absolute inset-0 opacity-20 blur-md grayscale pointer-events-none">
+        {children}
+      </div>
+    </div>
+  );
+};
+
+const Card: React.FC<CardProps> = ({ children, className = "", locked = false, onUnlock, title, action }) => (
+  <div className={`relative bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden flex flex-col shadow-sm ${className}`}>
+    {title && (
+      <div className="px-5 py-4 border-b border-zinc-800 bg-zinc-900/50 flex justify-between items-center">
+        <h3 className="font-bold text-white text-xs uppercase tracking-widest flex items-center gap-2">{title}</h3>
+        {action && <div>{action}</div>}
+      </div>
+    )}
+    <div className="p-5 flex-1 relative">
+      {locked && (
+        <div className="absolute inset-0 bg-zinc-950/95 backdrop-blur-md flex flex-col items-center justify-center z-20 text-center p-8 animate-in fade-in duration-500">
+          <div className="bg-zinc-900 p-4 rounded-full mb-4 border border-zinc-800 shadow-2xl relative">
+            <div className="absolute inset-0 bg-red-600/20 blur-xl rounded-full"></div>
+            <Lock size={32} className="text-red-600 relative z-10" />
+          </div>
+          <h3 className="text-xl font-bold text-white mb-2">Relatório de Consultoria Avançada</h3>
+          <p className="text-zinc-400 text-xs max-w-sm mb-6 leading-relaxed">
+            Aceda ao Plano Estratégico Personalizado, Matriz de Ações Corretivas e fale com o Consultor IA.
+          </p>
+          <button 
+            onClick={onUnlock}
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wide transition-all shadow-lg shadow-red-600/20 flex items-center gap-2 group"
+          >
+            <Key size={14} className="group-hover:rotate-45 transition-transform" /> Desbloquear Estratégia
+          </button>
+        </div>
+      )}
+      {children}
+    </div>
+  </div>
+);
+
+const Badge: React.FC<BadgeProps> = ({ type, children }) => {
+  const styles = {
+    success: "bg-emerald-900/30 text-emerald-400 border-emerald-800",
+    warning: "bg-amber-900/30 text-amber-400 border-amber-800",
+    danger: "bg-red-900/30 text-red-400 border-red-800",
+    neutral: "bg-zinc-800 text-zinc-400 border-zinc-700",
+    brand: "bg-red-600/10 text-red-400 border-red-600/20",
+    ai: "bg-blue-900/30 text-blue-400 border-blue-800",
+    high: "bg-red-600 text-white border-red-700 shadow-red-900/20",
+    med: "bg-amber-600 text-white border-amber-700",
+    low: "bg-emerald-600 text-white border-emerald-700"
+  };
+  return (
+    <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-bold border ${styles[type] || styles.neutral} whitespace-nowrap tracking-wider`}>
+      {children}
+    </span>
+  );
+};
+
+// --- Chat Assistant Component ---
+
+const ChatAssistant: React.FC<{ context: string, strategy?: any, isConnected: boolean }> = ({ context, strategy, isConnected }) => {
+  const [messages, setMessages] = useState<{role: 'user' | 'ai', text: string}[]>([
+    { role: 'ai', text: "Olá! Sou o Assistente da catarinaantunes.pt. Como especialista posso ajudar-te a compreender melhor algum gráfico ou dar-te uma visão com mais detalhe. O que gostarias de saber?" }
+  ]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+    const userMsg = input;
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    setLoading(true);
+
+    setTimeout(() => {
+      let aiResponse = "";
+      const lowerMsg = userMsg.toLowerCase();
+      const rand = Math.random(); 
+      
+      if (context === 'strategy' && strategy) {
+        const personaName = strategy.persona.name;
+        const archetype = strategy.archetype.name;
+
+        if (lowerMsg.includes('vender') || lowerMsg.includes('conversão')) {
+          aiResponse = `**Estratégia Comercial para ${personaName}:**\n\nO seu público valoriza ${strategy.persona.traits}. Para vender a este perfil:\n1. **Não use pressão:** Eles odeiam sentir-se vendidos.\n2. **Use Lógica:** Como a sua marca é "${archetype}", fundamente a oferta em dados.\n3. **Ação:** Crie um vídeo de 'Bastidores' mostrando o processo, não apenas o resultado final.`;
+        } else if (lowerMsg.includes('storytelling') || lowerMsg.includes('história')) {
+           aiResponse = `**Narrativa Personalizada:**\n\nPara o arquétipo **${archetype}**, a sua história não deve ser sobre 'vitória fácil'. Deve ser sobre **${strategy.archetype.trait}**.\n\n**Guião Sugerido:**\n"Eu sabia a verdade sobre X, mas ninguém me ouvia [Conflito]. Decidi provar com dados [Ação do Sábio]. Este foi o resultado [Prova]."`;
+        } else if (lowerMsg.includes('branding') || lowerMsg.includes('visual')) {
+           aiResponse = `**Direção de Arte:**\n\nA paleta atual não está a comunicar "${strategy.archetype.trait}". Para o público **${personaName}**, precisamos de algo mais ${strategy.persona.tone}.\n\n**Ajuste:** Introduza ${strategy.archetype.color} nos destaques e use tipografia serifada nos títulos para autoridade.`;
+        } else {
+          aiResponse = `**Consultoria Estratégica:**\n\nAnalisando o perfil, o maior bloqueio é a **Coerência**. Você oscila entre ser "amigo" e ser "especialista". \n\nComo o seu arquétipo dominante é **${archetype}**, assuma essa postura em 100% dos posts. Não tenha medo de ser técnico, o seu público (${personaName}) procura isso.`;
+        }
+      } else {
+        // General Audit Context (Technical)
+        if (!isConnected && (lowerMsg.includes('alcance') || lowerMsg.includes('vendas') || lowerMsg.includes('demografia'))) {
+          aiResponse = "**Acesso Restrito:** Para analisar métricas profundas como Alcance Real, Dados Demográficos ou Vendas, preciso que ligue a sua conta de Instagram no botão acima. Sem isso, apenas tenho acesso a dados públicos de vitrine.";
+        } else if (lowerMsg.includes('hashtag') || lowerMsg.includes('seo')) {
+          aiResponse = "**Estratégia de Hashtags:**\nUse a regra 3x3: 3 de nicho, 3 de dor/problema, 3 de marca. Evite tags genéricas como #amor ou #marketing.";
+        } else if (lowerMsg.includes('bio')) {
+          aiResponse = "**Otimização de Bio:**\nPromessa clara + Autoridade + CTA. Ex: 'Ajudo X a atingir Y em Z tempo'.";
+        } else {
+           aiResponse = "**Análise Técnica:**\nO seu perfil tem uma boa base visual, mas falha na retenção. Sugiro focar-se em ganchos visuais mais fortes nos primeiros 3 segundos dos Reels.";
+        }
+      }
+
+      setMessages(prev => [...prev, { role: 'ai', text: aiResponse }]);
+      setLoading(false);
+    }, 1200);
+  };
+
+  return (
+    <div className="mt-8 border-t border-zinc-800 pt-6">
+      <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden flex flex-col h-[400px]">
+        <div className="p-4 border-b border-zinc-800 bg-zinc-900/50 flex items-center justify-between">
+           <div className="flex items-center gap-2">
+             <div className="p-2 bg-red-600/10 rounded-lg text-red-500"><Bot size={18} /></div>
+             <div>
+               <h4 className="text-sm font-bold text-white">Assistente da catarinaantunes.pt</h4>
+               <p className="text-[10px] text-zinc-500">Especialista em {context === 'strategy' ? 'Estratégia & Negócio' : 'Análise Técnica'}</p>
+             </div>
+           </div>
+           <Badge type="ai">Online</Badge>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar" ref={scrollRef}>
+          {messages.map((msg, idx) => (
+            <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-zinc-800' : 'bg-red-600/20 text-red-500'}`}>
+                {msg.role === 'user' ? <User size={14} className="text-zinc-400" /> : <Sparkles size={14} />}
+              </div>
+              <div className={`p-3 rounded-xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'bg-zinc-800 text-zinc-200 rounded-tr-none' : 'bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-tl-none'}`}>
+                {msg.text}
+              </div>
+            </div>
+          ))}
+          {loading && <div className="flex gap-3"><div className="w-8 h-8 rounded-full bg-red-600/20 text-red-500 flex items-center justify-center shrink-0"><Sparkles size={14} /></div><div className="bg-zinc-900 border border-zinc-800 p-3 rounded-xl rounded-tl-none flex gap-1 items-center"><div className="w-1.5 h-1.5 bg-zinc-600 rounded-full animate-bounce"></div><div className="w-1.5 h-1.5 bg-zinc-600 rounded-full animate-bounce delay-100"></div><div className="w-1.5 h-1.5 bg-zinc-600 rounded-full animate-bounce delay-200"></div></div></div>}
+        </div>
+        <div className="p-4 bg-zinc-900/50 border-t border-zinc-800">
+          <div className="flex gap-2">
+            <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Faz as tuas perguntas aqui" className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-sm text-white focus:border-red-500/50 focus:outline-none placeholder:text-zinc-600" />
+            <button onClick={handleSend} disabled={!input.trim() || loading} className="bg-red-600 hover:bg-red-700 text-white p-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><Send size={18} /></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- View Components ---
+
+const DashboardView = ({ username, seed, isConnected }: { username: string, seed: number, isConnected: boolean }) => {
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('7d');
+  const getMetrics = (range: string) => {
+    const multiplier = range === '30d' ? 4 : range === '90d' ? 12 : 1;
+    return {
+      clicks: isConnected ? 145 * multiplier + Math.floor(seededRandom(seed) * 20 * multiplier) : 0,
+      interactions: 2400 * multiplier + Math.floor(seededRandom(seed+1) * 500 * multiplier),
+      comments: 320 * multiplier + Math.floor(seededRandom(seed+2) * 50 * multiplier),
+      growth: (120 * multiplier) + Math.floor(seededRandom(seed+3) * 30 * multiplier),
+      reach: isConnected ? (15000 * multiplier) + Math.floor(seededRandom(seed+4) * 2000 * multiplier) : 0,
+    };
+  };
+
+  const metrics = getMetrics(timeRange);
+  const data = generateDailyGrowth(seed); 
+  const interactionBreakdown = generateInteractionBreakdown(seed);
+  const contentVolume = generateContentVolume(seed);
+  const geoData = generateGeoData(seed);
+  const ageData = generateAgeData(seed);
+  const activityData = generateActivityHeatmap(seed);
+  const adsData = generateAdsData(seed);
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex justify-end mb-2">
+        <div className="flex bg-zinc-900 border border-zinc-800 rounded-lg p-1">
+           {(['7d', '30d', '90d'] as const).map(range => (
+             <button key={range} onClick={() => setTimeRange(range)} className={`px-3 py-1.5 text-[10px] font-bold rounded transition-all ${timeRange === range ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>{range === '7d' ? '7 DIAS' : range === '30d' ? '30 DIAS' : '90 DIAS'}</button>
+           ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-xl flex flex-col justify-between h-36"><p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2"><Eye size={12}/> Alcance Total</p><h3 className="text-3xl font-bold text-white mt-1">{isConnected ? `${(metrics.reach / 1000).toFixed(1)}K` : <span className="text-zinc-600 text-xl blur-sm">15.2K</span>}</h3><div className="mt-auto flex justify-between text-[9px] text-zinc-500 border-t border-zinc-800 pt-2"><span>Seguidores: <strong>30%</strong></span><span>Não Seg: <strong>70%</strong></span></div></div>
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-xl flex flex-col justify-between h-36"><p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2"><Zap size={12}/> Interações (Públicas)</p><h3 className="text-3xl font-bold text-white mt-1">{(metrics.interactions / 1000).toFixed(1)}K</h3><div className="mt-auto text-[10px] text-emerald-400 font-bold">Likes + Comentários</div></div>
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-xl flex flex-col justify-between h-36"><p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2"><MousePointer2 size={12}/> Cliques no Perfil</p><h3 className="text-3xl font-bold text-white mt-1">{isConnected ? metrics.clicks : <span className="text-zinc-600 text-xl blur-sm">145</span>}</h3><div className="mt-auto text-[10px] text-zinc-500">{isConnected ? 'Link na Bio' : 'Conecte para ver'}</div></div>
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-xl flex flex-col justify-between h-36"><p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2"><TrendingUp size={12}/> Crescimento Estimado</p><h3 className="text-3xl font-bold text-white mt-1">+{metrics.growth}</h3><div className="mt-auto text-[10px] text-emerald-400 font-bold">Novos Seguidores</div></div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card title="Interações por Tipo de Audiência"><DataGuard isConnected={isConnected} title="Breakdown de Interações"><div className="h-[250px] w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={interactionBreakdown} layout="vertical" margin={{ left: 20 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#27272a" /><XAxis type="number" stroke="#52525b" fontSize={10} /><YAxis dataKey="name" type="category" stroke="#fff" fontSize={11} width={80} /><RechartsTooltip contentStyle={{backgroundColor: '#18181b', borderColor: '#27272a'}} /><Legend /><Bar dataKey="seguidores" name="Seguidores" stackId="a" fill="#ef4444" /><Bar dataKey="naoSeguidores" name="Não Seguidores" stackId="a" fill="#3b82f6" /></BarChart></ResponsiveContainer></div></DataGuard></Card>
+        <Card title="Volume de Conteúdo (Público)"><div className="h-[250px] w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={contentVolume}><CartesianGrid strokeDasharray="3 3" stroke="#27272a" /><XAxis dataKey="name" stroke="#52525b" fontSize={10} /><YAxis yAxisId="left" stroke="#52525b" fontSize={10} /><Bar yAxisId="left" dataKey="quantidade" name="Qtd Posts" fill="#f59e0b" /></BarChart></ResponsiveContainer></div></Card>
+      </div>
+      <Card title="Inteligência de Audiência (Privado)"><DataGuard isConnected={isConnected} title="Dados Demográficos Profundos"><div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[200px]"><ResponsiveContainer width="100%" height="100%"><BarChart data={ageData}><Bar dataKey="seguidores" fill="#ef4444" /></BarChart></ResponsiveContainer></div></DataGuard></Card>
+      <Card title="Ads Manager (Privado)"><DataGuard isConnected={isConnected} title="Performance de Anúncios"><div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">{adsData.map((ad, i) => (<div key={i} className="bg-zinc-950 p-4 rounded-lg"><p className="text-white font-bold">{ad.objective}</p></div>))}</div></DataGuard></Card>
+      <ChatAssistant context="audit" isConnected={isConnected} />
+    </div>
+  );
+};
+
+const FullAuditView = ({ seed }: { seed: number }) => {
+  const brandConsistency = useMemo(() => generateBrandConsistency(seed), [seed]);
+  const archetype = useMemo(() => generateArchetypeData(seed), [seed]);
+  const seoScore = useMemo(() => generateSeoScore(seed), [seed]);
+  const copyAnalysis = useMemo(() => generateCopyAnalysis(seed), [seed]);
+  const formatPerformance = useMemo(() => generateFormatPerformance(seed), [seed]);
+  const funnel = useMemo(() => generateFunnelData(seed), [seed]);
+  const contentMix = useMemo(() => generateContentMix(seed), [seed]);
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500 pb-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Card title="Consistência Visual (Público)"><div className="h-[220px] w-full"><ResponsiveContainer width="100%" height="100%"><RadialBarChart innerRadius="20%" outerRadius="100%" data={brandConsistency} startAngle={180} endAngle={0}><RadialBar background dataKey="value" cornerRadius={10} /><Legend /></RadialBarChart></ResponsiveContainer></div></Card>
+          <Card title="Arquétipo (Público)"><div className="h-[220px] w-full"><ResponsiveContainer width="100%" height="100%"><RadarChart cx="50%" cy="50%" outerRadius="70%" data={archetype}><PolarGrid stroke="#3f3f46" /><PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 9 }} /><PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} /><Radar name="Marca" dataKey="A" stroke="#ef4444" strokeWidth={2} fill="#ef4444" fillOpacity={0.5} /></RadarChart></ResponsiveContainer></div></Card>
+          <Card title="SEO Técnico (Público)"><div className="h-[220px] w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={seoScore} layout="vertical"><XAxis type="number" hide/><YAxis dataKey="name" type="category" width={100} stroke="#fff" fontSize={10}/><Bar dataKey="score" fill="#ef4444" radius={[0,4,4,0]} barSize={20}/></BarChart></ResponsiveContainer></div></Card>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+         <Card title="Foco do Copy"><div className="h-[200px] w-full"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={copyAnalysis} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"><Cell fill="#ef4444"/><Cell fill="#52525b"/></Pie><Legend /></PieChart></ResponsiveContainer></div></Card>
+         <Card title="Análise de Funil"><div className="h-[250px] w-full"><ResponsiveContainer width="100%" height="100%"><FunnelChart><Funnel dataKey="value" data={funnel} isAnimationActive><LabelList position="right" fill="#fff" stroke="none" dataKey="name" fontSize={10} /></Funnel></FunnelChart></ResponsiveContainer></div></Card>
+      </div>
+      <ChatAssistant context="audit" isConnected={true} /> 
+    </div>
+  );
+};
+
+const ContentTrendsView: React.FC<{ username: string, seed: number, isConnected: boolean }> = ({ username, seed, isConnected }) => {
+  const posts = generatePosts(username, seed);
+  return (
+    <div className="space-y-8 animate-in fade-in pb-12">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+         <Card title="Tendências"><div className="space-y-2">{trendsData.map((t, i) => <div key={i} className="p-2 bg-zinc-950 rounded text-xs flex justify-between"><span>{t.topic}</span><span className="text-emerald-400">{t.trend}</span></div>)}</div></Card>
+         <Card title="Top Reels" className="lg:col-span-2"><div className="flex gap-2">{[1,2,3].map(i => <div key={i} className="h-32 w-24 bg-zinc-900 rounded flex items-center justify-center"><Video size={20} className="text-zinc-600"/></div>)}</div></Card>
+      </div>
+      <Card title={`Matriz Detalhada: Posts de ${username}`}>
+        <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="bg-zinc-950 text-zinc-500 font-bold border-b border-zinc-800"><tr><th className="px-4 py-3">Data</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">Conteúdo</th><th className="px-4 py-3 text-right">Alcance</th><th className="px-4 py-3 text-right">Saves</th></tr></thead><tbody className="divide-y divide-zinc-800">{posts.map((post, i) => (<tr key={i}><td className="px-4 py-3 text-zinc-400">{post.date}</td><td className="px-4 py-3"><Badge type="neutral">{post.type}</Badge></td><td className="px-4 py-3 text-white">{post.content}</td><td className="px-4 py-3 text-right text-zinc-300">{isConnected ? post.reach : <span className="blur-sm">12500</span>}</td><td className="px-4 py-3 text-right text-emerald-400">{isConnected ? post.saves : <span className="blur-sm">300</span>}</td></tr>))}</tbody></table></div>
+        {!isConnected && <div className="text-center p-2 text-xs text-zinc-500 bg-zinc-950/50 mt-2">⚠️ Dados de Alcance e Saves requerem ligação à conta.</div>}
+      </Card>
+      <ChatAssistant context="content" isConnected={isConnected} />
+    </div>
+  );
+};
+
+const CompetitorView: React.FC<{ competitors: string[], seed: number }> = ({ competitors, seed }) => {
+  const [comps, setComps] = useState<string[]>(competitors);
+  const [newComp, setNewComp] = useState('');
+  const addCompetitor = () => { if (newComp && comps.length < 5) { setComps([...comps, newComp]); setNewComp(''); }};
+  const removeCompetitor = (index: number) => { setComps(comps.filter((_, i) => i !== index)); };
+  
+  const hasCompetitors = comps.length > 0;
+  const chartData = hasCompetitors ? generateCompetitorMatrix(['Você', ...comps], seed) : [];
+  const sovData = hasCompetitors ? generateShareOfVoice(['Você', ...comps], seed) : [];
+  const contentData = hasCompetitors ? generateContentStrategy(['Você', ...comps], seed) : [];
+  const velocityData = hasCompetitors ? generateGrowthVelocity(['Você', ...comps], seed) : [];
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500 pb-12">
+      <Card className="border-t-4 border-t-red-600">
+        <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="w-full"><label className="text-xs text-zinc-500 uppercase font-bold mb-2 block">Adicionar Concorrente (Máx 5)</label><div className="flex gap-2"><div className="relative flex-1"><Users className="absolute left-3 top-3 text-zinc-500" size={18} /><input type="text" placeholder="@concorrente" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 pl-10 pr-4 text-white focus:border-red-500/50 focus:outline-none" value={newComp} onChange={(e) => setNewComp(e.target.value)} /></div><button onClick={addCompetitor} disabled={comps.length >= 5 || !newComp} className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 rounded-lg font-bold transition-colors disabled:opacity-50"><Plus size={20} /></button></div></div>
+        </div>
+        <div className="flex flex-wrap gap-2 mt-4"><div className="px-3 py-1.5 rounded-full bg-red-500/20 border border-red-500 text-red-400 text-xs font-bold flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500"></span> Você</div>{comps.map((comp, i) => (<div key={i} className="px-3 py-1.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-bold flex items-center gap-2 group"><span className="w-2 h-2 rounded-full" style={{backgroundColor: COMP_COLORS[i+1]}}></span> {comp}<button onClick={() => removeCompetitor(i)} className="hover:text-red-500"><Trash2 size={12} /></button></div>))}</div>
+      </Card>
+
+      {!hasCompetitors ? (
+        <div className="flex flex-col items-center justify-center py-20 bg-zinc-900/30 border border-zinc-800 border-dashed rounded-xl">
+           <div className="p-4 bg-zinc-800 rounded-full mb-4"><Users size={32} className="text-zinc-500" /></div>
+           <h3 className="text-white font-bold text-lg">A Aguardar Dados da Concorrência</h3>
+           <p className="text-zinc-500 text-sm mt-2">Adicione perfis acima para desbloquear a inteligência de mercado.</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card title="Share of Voice"><div className="h-[300px] w-full"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={sovData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">{sovData.map((entry, index) => <Cell key={`cell-${index}`} fill={COMP_COLORS[index % COMP_COLORS.length]} />)}</Pie><Legend iconType="circle" /><RechartsTooltip contentStyle={{backgroundColor: '#18181b', borderColor: '#27272a'}} /></PieChart></ResponsiveContainer></div></Card>
+            <Card title="Growth Velocity"><div className="h-[300px] w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={velocityData}><CartesianGrid strokeDasharray="3 3" stroke="#27272a" /><XAxis dataKey="name" stroke="#52525b" fontSize={10} /><YAxis stroke="#52525b" fontSize={10} /><RechartsTooltip contentStyle={{backgroundColor: '#18181b', borderColor: '#27272a'}} /><Legend /><Line type="monotone" dataKey="Você" stroke={COMP_COLORS[0]} strokeWidth={3} dot={false} />{comps.map((comp, i) => (<Line key={i} type="monotone" dataKey={comp} stroke={COMP_COLORS[i+1]} strokeWidth={2} dot={false} strokeDasharray="5 5" />))}</LineChart></ResponsiveContainer></div></Card>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card title="Estratégia de Conteúdo" className="lg:col-span-2"><div className="h-[350px] w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={contentData} layout="vertical" margin={{ left: 20 }}><CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} /><XAxis type="number" stroke="#52525b" fontSize={10} /><YAxis dataKey="name" type="category" stroke="#fff" fontSize={11} width={80} /><RechartsTooltip contentStyle={{backgroundColor: '#18181b', borderColor: '#27272a'}} /><Legend /><Bar dataKey="Reels" stackId="a" fill="#ef4444" /><Bar dataKey="Carrossel" stackId="a" fill="#f59e0b" /><Bar dataKey="Estatico" stackId="a" fill="#3b82f6" /></BarChart></ResponsiveContainer></div></Card>
+            <Card title="Radar Competitivo"><div className="h-[350px] w-full"><ResponsiveContainer width="100%" height="100%"><RadarChart cx="50%" cy="50%" outerRadius="65%" data={chartData}><PolarGrid stroke="#3f3f46" /><PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 10 }} /><PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} /><Radar name="Você" dataKey="Você" stroke={COMP_COLORS[0]} strokeWidth={3} fill={COMP_COLORS[0]} fillOpacity={0.3} />{comps.map((comp, i) => (<Radar key={i} name={comp} dataKey={comp} stroke={COMP_COLORS[i+1]} strokeWidth={2} fill="transparent" />))}<Legend wrapperStyle={{fontSize: '10px'}} /></RadarChart></ResponsiveContainer></div></Card>
+          </div>
+        </>
+      )}
+      <ChatAssistant context="competitors" isConnected={true} />
+    </div>
+  );
+};
+
+const StrategicReportView: React.FC<{ isLocked: boolean, onUnlock: () => void, isLoggedIn: boolean, username: string, seed: number }> = ({ isLocked, onUnlock, isLoggedIn, username, seed }) => {
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [showCredentials, setShowCredentials] = useState(false);
+
+  const strategy = useMemo(() => generateStrategyProfile(username, seed), [username, seed]);
+  const connectAccount = () => { setShowCredentials(true); };
+  const confirmCredentials = () => { setShowCredentials(false); setIsConnecting(true); setTimeout(() => { setIsConnecting(false); setIsConnected(true); }, 2000); };
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
+      {showCredentials && (
+        <div className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-sm w-full shadow-2xl relative">
+              <button onClick={() => setShowCredentials(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white"><XCircle size={24}/></button>
+              <div className="flex justify-center mb-4"><Instagram size={48} className="text-white" /></div>
+              <h3 className="text-lg font-bold text-white text-center mb-2">Ligar ao Instagram</h3>
+              <p className="text-xs text-zinc-400 text-center mb-6">Autorize o acesso aos metadados, legendas e criativos para uma análise profunda.</p>
+              <input type="text" placeholder="Nome de utilizador" className="w-full bg-zinc-950 border border-zinc-700 rounded p-3 mb-3 text-sm text-white" />
+              <input type="password" placeholder="Palavra-passe" className="w-full bg-zinc-950 border border-zinc-700 rounded p-3 mb-4 text-sm text-white" />
+              <button onClick={confirmCredentials} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded font-bold text-sm">Autorizar Acesso</button>
+           </div>
+        </div>
+      )}
+      <Card locked={isLocked} onUnlock={onUnlock} title={isLoggedIn ? "Diretrizes catarinaantunes.pt" : "Relatório Bloqueado"}>
+        <div className="flex items-center justify-between bg-zinc-950 border border-zinc-800 p-4 rounded-lg mb-8">
+          <div className="flex items-center gap-3">
+            <div className="relative"><div className="w-12 h-12 bg-gradient-to-tr from-yellow-500 via-red-500 to-purple-500 rounded-full p-[2px]"><div className="w-full h-full bg-zinc-950 rounded-full flex items-center justify-center"><Instagram size={20} className="text-white" /></div></div>{isConnected && <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-zinc-900 rounded-full"></div>}</div>
+            <div><h4 className="text-sm font-bold text-white">{isConnected ? `Conta Conectada: ${username}` : 'Acesso a Dados Oficiais'}</h4><p className="text-[10px] text-emerald-400 flex items-center gap-1 uppercase tracking-wider font-bold"><Database size={10} /> {isConnected ? 'Dados API Sincronizados' : 'Ligação Necessária'}</p></div>
+          </div>
+          <div className="text-right">{!isConnected ? (<button onClick={connectAccount} disabled={isConnecting} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2">{isConnecting ? <RefreshCcw size={12} className="animate-spin" /> : <Link2 size={12} />} {isConnecting ? 'A Ligar...' : 'Ligar Instagram'}</button>) : (<div><p className="text-[10px] text-zinc-500 uppercase font-bold">Última Sincronização</p><p className="text-sm text-white font-mono">Agora mesmo</p></div>)}</div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+             <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2 uppercase tracking-wider"><Target size={16} className="text-amber-500" /> Perfil Estratégico (Gerado por IA)</h4>
+             <div className="space-y-4"><div className="flex justify-between items-center p-3 bg-zinc-950 border border-zinc-800 rounded-lg"><span className="text-xs text-zinc-400 font-bold uppercase">Persona Alvo</span><span className="text-sm text-white font-bold">{strategy.persona.name}</span></div><div className="flex justify-between items-center p-3 bg-zinc-950 border border-zinc-800 rounded-lg"><span className="text-xs text-zinc-400 font-bold uppercase">Tom de Voz</span><span className="text-sm text-emerald-400 font-bold">{strategy.persona.tone}</span></div><div className="flex justify-between items-center p-3 bg-zinc-950 border border-zinc-800 rounded-lg"><span className="text-xs text-zinc-400 font-bold uppercase">Formato Vencedor</span><span className="text-sm text-purple-400 font-bold">{strategy.persona.format}</span></div><div className="p-3 bg-red-900/10 border border-red-900/30 rounded-lg mt-2"><p className="text-xs text-red-300 italic">"O seu público ({strategy.persona.name}) ignora o genérico. A sua única chance é adotar o arquétipo <strong>{strategy.archetype.name}</strong> ({strategy.archetype.trait}) imediatamente."</p></div></div>
+          </div>
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+             <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2 uppercase tracking-wider"><Drama size={16} className="text-purple-500" /> Laboratório de Storytelling ({strategy.persona.storyType})</h4>
+             <div className="relative pl-4 border-l-2 border-zinc-800 space-y-6">{strategy.storyStructure.map((step, i) => (<div key={i} className="relative"><div className="absolute -left-[21px] top-0 w-3 h-3 bg-zinc-950 border-2 border-purple-600 rounded-full"></div><div className="flex justify-between items-start"><span className="text-xs font-bold text-white">{step.step}</span><Badge type="neutral">{step.time}</Badge></div><p className="text-[10px] text-zinc-400 mt-1">{step.action}</p></div>))}</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          <div className="lg:col-span-2 space-y-6">
+             <h3 className="text-base font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-zinc-800 pb-2"><Crosshair className="text-red-500" size={18} /> Matriz de Ações Corretivas (Personalizada)</h3>
+             <div className="space-y-3">{strategy.recommendations.map((rec, i) => (<div key={i} className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-lg hover:border-red-500/30 transition-colors"><div className="flex justify-between items-start mb-2"><Badge type="neutral">{rec.area}</Badge><Badge type={rec.priority === 'Alta' ? 'high' : 'med'}>{rec.priority}</Badge></div><p className="text-xs text-red-400 mb-2 font-bold flex items-center gap-2"><AlertCircle size={12}/> Problema: {rec.problem}</p><p className="text-sm text-white font-medium mb-3">"{rec.solution}"</p><div className="flex items-center gap-2 text-xs text-emerald-400 font-bold bg-emerald-900/10 p-2 rounded w-fit"><TrendingUp size={12} /> Impacto: {rec.impact}</div></div>))}</div>
+          </div>
+          <div className="space-y-6">
+             <h3 className="text-base font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-zinc-800 pb-2"><Map className="text-red-500" size={18} /> Roadmap 90 Dias</h3>
+             <div className="relative border-l-2 border-zinc-800 ml-3 space-y-8 py-2">{strategy.roadmap.map((step, i) => (<div key={i} className="ml-6 relative"><div className="absolute -left-[31px] top-0 w-4 h-4 bg-zinc-950 border-2 border-red-600 rounded-full"></div><h4 className="text-sm font-bold text-white">{step.phase}</h4><p className="text-xs text-red-400 font-bold mb-2 uppercase">{step.focus}</p><ul className="space-y-1">{step.tasks.map((t, j) => (<li key={j} className="text-xs text-zinc-400 flex items-center gap-2"><CheckSquare size={10} /> {t}</li>))}</ul></div>))}</div>
+          </div>
+        </div>
+        <ChatAssistant context="strategy" strategy={strategy} isConnected={isConnected} />
+      </Card>
+    </div>
+  );
+};
+
+export default function App() {
+  const [appState, setAppState] = useState<'input' | 'loading' | 'dashboard'>('input');
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [inputUsername, setInputUsername] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const [userProfile, setUserProfile] = useState({ handle: '', seed: 0 });
+  const [competitorsList, setCompetitorsList] = useState<string[]>([]);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [isConnected, setIsConnected] = useState(false); // Meta Connection State
+
+  const handleStartAnalysis = () => {
+    if (!inputUsername) return;
+    const seed = getSeed(inputUsername);
+    setUserProfile({ handle: inputUsername, seed });
+    setCompetitorsList([]); 
+    setAppState('loading');
+    setTimeout(() => { setAppState('dashboard'); }, 2500);
+  };
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginEmail || !acceptedTerms) return;
+    console.log(`Enviando relatório de ${inputUsername} para catarinaantunes.pt@gmail.com. Lead: ${loginEmail}`);
+    setIsLoggedIn(true);
+    setShowLoginModal(false);
+    setActiveTab('report'); 
+  };
+
+  const handleConnect = () => {
+    setShowConnectModal(false);
+    setIsConnected(true);
+  };
+
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard Geral', icon: LayoutDashboard },
+    { id: 'audit', label: 'Auditoria 360º', icon: ClipboardCheck },
+    { id: 'content', label: 'Conteúdo & Trends', icon: Table2 },
+    { id: 'competitors', label: 'Concorrência', icon: Users }, 
+    { id: 'report', label: 'Estratégia', icon: FileText, locked: !isLoggedIn }, 
+  ];
+
+  if (appState === 'input') {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-red-500/30">
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+          <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-red-600/10 rounded-full blur-[120px]"></div>
+          <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-zinc-800/20 rounded-full blur-[120px]"></div>
+        </div>
+        <div className="z-10 w-full max-w-md animate-in fade-in zoom-in-95 duration-500">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center p-3 bg-zinc-900 border border-zinc-800 rounded-xl mb-4 shadow-xl">
+               <img src={LOGO_URL} alt="Catarina Antunes Social" className="w-12 h-12 object-contain" />
+            </div>
+            <h1 className="text-3xl font-bold text-white tracking-tight mb-2">catarinaantunes.pt <span className="text-red-500">social</span></h1>
+            <p className="text-zinc-400 max-w-xs mx-auto leading-relaxed text-sm">
+              Estratégia e Resultados através do Design, Branding, Comunicação & Marketing.
+            </p>
+          </div>
+          <div className="bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 shadow-2xl">
+            <div className="space-y-5">
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-zinc-500 mb-1.5">Perfil de Instagram</label>
+                <div className="relative">
+                  <Instagram className="absolute left-3 top-3 text-zinc-500" size={18} />
+                  <input type="text" placeholder="@oteuperfil" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 pl-10 pr-4 text-white focus:border-red-500/50 focus:outline-none" value={inputUsername} onChange={(e) => setInputUsername(e.target.value)} />
+                </div>
+              </div>
+              <button onClick={handleStartAnalysis} disabled={!inputUsername} className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-600/20 mt-4">
+                Iniciar Auditoria Profunda <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (appState === 'loading') {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center font-sans">
+        <div className="w-16 h-16 border-4 border-zinc-800 border-t-red-600 rounded-full animate-spin mb-4"></div>
+        <h2 className="text-xl font-bold text-white">A realizar Auditoria 360º...</h2>
+        <p className="text-zinc-500 text-sm mt-2">Processando vetores de Branding, SEO e Performance.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-red-500/30 relative">
+      {showConnectModal && (
+        <div className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+           <div className="bg-white text-black rounded-xl p-8 max-w-sm w-full text-center relative">
+              <button onClick={() => setShowConnectModal(false)} className="absolute top-2 right-2 text-gray-400"><XCircle/></button>
+              <div className="flex justify-center mb-4"><Instagram size={48} /></div>
+              <h3 className="font-bold text-xl mb-2">Instagram Graph API</h3>
+              <p className="text-sm text-gray-600 mb-6">A catarinaantunes.pt solicita permissão para aceder a: Insights, Dados Demográficos e Catálogo de Anúncios.</p>
+              <button onClick={handleConnect} className="w-full bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2"><Database size={16}/> Continuar como {inputUsername || 'User'}</button>
+              <p className="text-xs text-gray-400 mt-4">Ligação segura via Meta for Developers.</p>
+           </div>
+        </div>
+      )}
+      {showLoginModal && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-md w-full shadow-2xl relative">
+            <button onClick={() => setShowLoginModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white"><XCircle size={24} /></button>
+            <div className="flex flex-col items-center text-center mb-6">
+              <div className="bg-red-600/20 p-4 rounded-full mb-4 text-red-500"><Lock size={32} /></div>
+              <h2 className="text-xl font-bold text-white">Acesso Estratégico Exclusivo</h2>
+              <p className="text-zinc-400 mt-2 text-xs leading-relaxed">Receba o Plano de Implementação, Matriz de Ações e Auditoria de Semiótica no seu email.</p>
+            </div>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <input type="email" required placeholder="seu@email.com" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-4 text-white focus:border-red-500/50 focus:outline-none" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
+              <div className="flex items-center gap-2 text-xs text-zinc-400"><input type="checkbox" id="privacy-check" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-red-600 focus:ring-red-500/50" /><label htmlFor="privacy-check">Li e aceito a <a href="https://catarinaantunes.pt/politica-privacidade/" target="_blank" rel="noopener noreferrer" className="text-white hover:text-red-400 underline transition-colors">Política de Privacidade</a></label></div>
+              <button type="submit" disabled={!acceptedTerms || !loginEmail} className={`w-full py-3 rounded-lg font-bold text-sm uppercase tracking-wide shadow-lg transition-all flex items-center justify-center gap-2 ${acceptedTerms && loginEmail ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/20' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}>Receber Plano de Ação {acceptedTerms && loginEmail && <ArrowRight size={16} />}</button>
+            </form>
+          </div>
+        </div>
+      )}
+      <aside className="fixed left-0 top-0 bottom-0 w-20 lg:w-64 bg-zinc-950 border-r border-zinc-800 z-50 flex flex-col hidden md:flex">
+        <div className="p-6 flex items-center gap-3">
+            <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center shrink-0 shadow-lg shadow-red-600/20">
+                <img src={LOGO_URL} alt="CA Logo" className="w-5 h-5 object-contain brightness-0 invert" />
+            </div>
+            <div className="hidden lg:block"><span className="font-bold text-lg block leading-none">catarinaantunes.pt</span><span className="text-red-500 font-bold text-[10px] tracking-[0.2em] uppercase">social</span></div>
+        </div>
+        <nav className="flex-1 px-4 py-8 space-y-2">{navItems.map((item) => (<button key={item.id} onClick={() => { if (item.locked) setShowLoginModal(true); else setActiveTab(item.id); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group ${activeTab === item.id ? 'bg-red-600/10 text-white border border-red-600/20' : 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200'}`}><item.icon size={18} className={activeTab === item.id ? 'text-red-500' : 'text-zinc-500 group-hover:text-zinc-300'} /><span className="hidden lg:block font-medium text-xs uppercase tracking-wide">{item.label}</span>{item.locked && <Lock size={12} className="ml-auto text-zinc-600" />}</button>))}</nav>
+        <div className="p-4 border-t border-zinc-800"><div className="bg-zinc-900 rounded-xl p-3 flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-gradient-to-tr from-zinc-700 to-zinc-600 flex items-center justify-center text-xs font-bold border border-zinc-600 text-zinc-300">{userProfile.handle.substring(1,3).toUpperCase()}</div><div className="hidden lg:block overflow-hidden"><p className="text-xs font-bold text-white truncate">{userProfile.handle}</p><p className="text-[10px] text-zinc-500 truncate">Free Plan</p></div><button onClick={() => setAppState('input')} className="ml-auto text-zinc-500 hover:text-white p-1 hover:bg-zinc-800 rounded" title="Nova Auditoria"><RefreshCcw size={16}/></button></div></div>
+      </aside>
+      <main className="md:pl-20 lg:pl-64 min-h-screen">
+        <header className="h-16 border-b border-zinc-800 flex items-center justify-between px-8 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-40">
+          <h1 className="text-lg font-bold text-white uppercase tracking-wider">{navItems.find(i => i.id === activeTab)?.label}</h1>
+          <div className="flex items-center gap-4">
+             {!isConnected && (
+               <button onClick={() => setShowConnectModal(true)} className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/10 border border-blue-600/30 rounded-full text-xs font-bold text-blue-400 hover:bg-blue-600/20 transition-all animate-pulse">
+                 <Link2 size={12} /> Ligar Conta Instagram
+               </button>
+             )}
+             {isConnected && (
+               <span className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600/10 border border-emerald-600/30 rounded-full text-xs font-bold text-emerald-400">
+                 <CheckCircle2 size={12} /> Conta Conectada
+               </span>
+             )}
+             <button onClick={() => setAppState('input')} className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-700 transition-colors"><RefreshCcw size={14}/><span>NOVA AUDITORIA</span></button>{!isLoggedIn ? <button onClick={() => setShowLoginModal(true)} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide shadow-lg shadow-red-600/20 flex items-center gap-2"><Lock size={12} /> Relatório Estratégico</button> : <button className="hidden sm:flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-zinc-300"><Settings size={14} /> Exportar PDF</button>}
+          </div>
+        </header>
+        <div className="p-8 pb-32 max-w-7xl mx-auto">
+          {activeTab === 'dashboard' && <DashboardView username={userProfile.handle} seed={userProfile.seed} isConnected={isConnected} />}
+          {activeTab === 'audit' && <FullAuditView seed={userProfile.seed} />}
+          {activeTab === 'content' && <ContentTrendsView username={userProfile.handle} seed={userProfile.seed} isConnected={isConnected} />}
+          {activeTab === 'competitors' && <CompetitorView competitors={competitorsList} seed={userProfile.seed} />}
+          {activeTab === 'report' && <StrategicReportView isLocked={!isLoggedIn} onUnlock={() => setShowLoginModal(true)} isLoggedIn={isLoggedIn} username={userProfile.handle} seed={userProfile.seed} />}
+        </div>
+      </main>
+    </div>
+  );
+}
